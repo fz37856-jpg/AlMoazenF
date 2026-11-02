@@ -1,6 +1,6 @@
+import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'services/prayer_service.dart';
-import 'package:flutter/material.dart';
 
 void main() {
   runApp(const AlMoazenApp());
@@ -13,11 +13,7 @@ const Color cream = Color(0xFFF7F6F0);
 
 class AlMoazenApp extends StatelessWidget {
   const AlMoazenApp({super.key});
-  @override
-  void initState() {
-    super.initState();
-    getUserLocation();
-  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -37,9 +33,43 @@ class AlMoazenApp extends StatelessWidget {
 }
 
 class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  int selectedIndex = 0;
+
+  final List<String> prayerNames = [
+    'الفجر',
+    'الشروق',
+    'الظهر',
+    'العصر',
+    'المغرب',
+    'العشاء',
+  ];
+
+  final List<String> prayerTimes = [
+    '--:--',
+    '--:--',
+    '--:--',
+    '--:--',
+    '--:--',
+    '--:--',
+  ];
+
+
   bool isLoadingLocation = false;
   String locationName = 'جارٍ تحديد موقعك...';
   String? locationError;
+
+  @override
+  void initState() {
+    super.initState();
+    getUserLocation();
+  }
 
   Future<void> getUserLocation() async {
     setState(() {
@@ -85,9 +115,8 @@ class HomePage extends StatefulWidget {
 
       setState(() {
         for (int i = 0; i < prayerNames.length; i++) {
-          prayerTimes[i] = PrayerService.formatTime(
-            times[prayerNames[i]]!,
-          );
+          prayerTimes[i] =
+              PrayerService.formatTime(times[prayerNames[i]]!);
         }
 
         locationName = 'تم تحديد موقعك بنجاح';
@@ -97,38 +126,13 @@ class HomePage extends StatefulWidget {
       if (!mounted) return;
 
       setState(() {
-        locationError = e.toString().replaceFirst('Exception: ', '');
+        locationError =
+            e.toString().replaceFirst('Exception: ', '');
         locationName = 'تعذّر تحديد الموقع';
         isLoadingLocation = false;
       });
     }
   }
-  const HomePage({super.key});
-
-  @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
-  int selectedIndex = 0;
-
-  final List<String> prayerNames = [
-    'الفجر',
-    'الشروق',
-    'الظهر',
-    'العصر',
-    'المغرب',
-    'العشاء',
-  ];
-
-  final List<String> prayerTimes = [
-    '--:--',
-    '--:--',
-    '--:--',
-    '--:--',
-    '--:--',
-    '--:--',
-  ];
 
   @override
   Widget build(BuildContext context) {
