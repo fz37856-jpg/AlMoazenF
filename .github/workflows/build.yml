@@ -21,6 +21,18 @@ jobs:
 
       - name: Create Flutter project
         run: flutter create --project-name almoazen_f --platforms=android .
+
+      - name: Upload Flutter source
+        uses: actions/upload-artifact@v4
+        with:
+          name: AlMoazenF-Source
+          path: .
+          exclude: |
+            .git/**
+            .github/**
+            build/**
+            .dart_tool/**
+
       - name: Build APK
         run: flutter build apk --release
 
