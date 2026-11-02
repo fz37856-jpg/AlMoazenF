@@ -1,3 +1,5 @@
+import 'package:geolocator/geolocator.dart';
+import 'services/prayer_service.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -11,7 +13,11 @@ const Color cream = Color(0xFFF7F6F0);
 
 class AlMoazenApp extends StatelessWidget {
   const AlMoazenApp({super.key});
-
+  @override
+  void initState() {
+    super.initState();
+    getUserLocation();
+  }
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -31,6 +37,72 @@ class AlMoazenApp extends StatelessWidget {
 }
 
 class HomePage extends StatefulWidget {
+  bool isLoadingLocation = false;
+  String locationName = 'جارٍ تحديد موقعك...';
+  String? locationError;
+
+  Future<void> getUserLocation() async {
+    setState(() {
+      isLoadingLocation = true;
+      locationError = null;
+    });
+
+    try {
+      bool serviceEnabled =
+          await Geolocator.isLocationServiceEnabled();
+
+      if (!serviceEnabled) {
+        throw Exception('يرجى تشغيل خدمة الموقع GPS');
+      }
+
+      LocationPermission permission =
+          await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied) {
+        throw Exception('لم يتم السماح للتطبيق باستخدام الموقع');
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        throw Exception('إذن الموقع مرفوض نهائياً، يرجى تفعيله من الإعدادات');
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
+
+      final times = PrayerService.calculatePrayerTimes(
+        latitude: position.latitude,
+        longitude: position.longitude,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        for (int i = 0; i < prayerNames.length; i++) {
+          prayerTimes[i] = PrayerService.formatTime(
+            times[prayerNames[i]]!,
+          );
+        }
+
+        locationName = 'تم تحديد موقعك بنجاح';
+        isLoadingLocation = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        locationError = e.toString().replaceFirst('Exception: ', '');
+        locationName = 'تعذّر تحديد الموقع';
+        isLoadingLocation = false;
+      });
+    }
+  }
   const HomePage({super.key});
 
   @override
