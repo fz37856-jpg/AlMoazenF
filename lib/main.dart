@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'services/prayer_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const AlMoazenApp());
@@ -14,7 +15,6 @@ const Color cream = Color(0xFFF7F6F0);
 class AlMoazenApp extends StatelessWidget {
   const AlMoazenApp({super.key});
 
-  @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -41,7 +41,16 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int selectedIndex = 0;
+bool automaticAdjustments = true;
 
+final Map<String, int> prayerAdjustments = {
+  'الفجر': 0,
+  'الشروق': 0,
+  'الظهر': 0,
+  'العصر': 0,
+  'المغرب': 0,
+  'العشاء': 0,
+};
   final List<String> prayerNames = [
     'الفجر',
     'الشروق',
@@ -66,11 +75,35 @@ class _HomePageState extends State<HomePage> {
   String? locationError;
 
   @override
-  void initState() {
+void initState() {
+  super.initState();
+  initializeApp();
+}
+
+Future<void> initializeApp() async {
+  await loadPrayerSettings();
+  await getUserLocation();
+}
     super.initState();
-    getUserLocation();
+loadPrayerSettings();
+   getUserLocation();
   }
 
+Future<void> loadPrayerSettings() async {
+  final prefs = await SharedPreferences.getInstance();
+
+  if (!mounted) return;
+
+  setState(() {
+    automaticAdjustments =
+        prefs.getBool('automaticAdjustments') ?? true;
+
+    for (String name in prayerNames) {
+      prayerAdjustments[name] =
+          prefs.getInt('adjust_$name') ?? 0;
+    }
+  });
+}
   Future<void> getUserLocation() async {
     setState(() {
       isLoadingLocation = true;
@@ -115,8 +148,15 @@ class _HomePageState extends State<HomePage> {
 
       setState(() {
         for (int i = 0; i < prayerNames.length; i++) {
-          prayerTimes[i] =
-              PrayerService.formatTime(times[prayerNames[i]]!);
+      final adjustment = automaticAdjustments
+    ? 0
+    : (prayerAdjustments[prayerNames[i]] ?? 0);
+
+final adjustedTime = times[prayerNames[i]]!.add(
+  Duration(minutes: adjustment),
+);
+
+prayerTimes[i] = PrayerService.formatTime(adjustedTime);
         }
 
         locationName = 'تم تحديد موقعك بنجاح';
@@ -133,8 +173,94 @@ class _HomePageState extends State<HomePage> {
       });
     }
   }
-
-  @override
+void _showPrayerSettings() {
+  showDialog(
+    context: context,
+    builder: (dialogContext) {
+      return StatefulBuilder(
+        builder: (context, dialogSetState) {
+          return AlertDialog(
+            title: const Text(
+              'ضبط مواقيت الصلاة',
+              textAlign: TextAlign.center,
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SwitchListTile(
+                    title: const Text('الضبط التلقائي'),
+                    subtitle: Text(
+                      automaticAdjustments
+                          ? 'عرض المواقيت دون تعديل'
+                          : 'تعديل المواقيت يدوياً',
+                    ),
+                    value: automaticAdjustments,
+                    onChanged: (value) {
+                      dialogSetState(() {
+                        automaticAdjustments = value;
+                      });
+                    },
+                  ),
+                  const Divider(),
+                  if (!automaticAdjustments)
+                    ...prayerNames.map((name) {
+                      return ListTile(
+                        title: Text(name),
+                        subtitle: Text(
+                          '${prayerAdjustments[name]} دقيقة',
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.remove_circle_outline),
+                              onPressed: () {
+                                dialogSetState(() {
+                                  prayerAdjustments[name] =
+                                      (prayerAdjustments[name] ?? 0) - 1;
+                                });
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.add_circle_outline),
+                              onPressed: () {
+                                dialogSetState(() {
+                                  prayerAdjustments[name] =
+                                      (prayerAdjustments[name] ?? 0) + 1;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                },
+                child: const Text('إلغاء'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  await savePrayerSettings();
+                  if (!mounted) return;
+                  setState(() {});
+                  Navigator.pop(dialogContext);
+                },
+                child: const Text('حفظ'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
   Widget build(BuildContext context) {
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -209,8 +335,8 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
         ),
-        IconButton(
-          onPressed: () {},
+onPressed: _showPrayerSettings,        IconButton(
+
           icon: const Icon(Icons.notifications_none_rounded),
           color: darkGreen,
           iconSize: 28,
