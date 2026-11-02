@@ -75,6 +75,8 @@ class _HomePageState extends State<HomePage> {
 
   bool isLoadingLocation = false;
   String locationName = 'جارٍ تحديد موقعك...';
+  double? userLatitude;
+  double? userLongitude;
   String? locationError;
 
   @override
@@ -153,7 +155,8 @@ class _HomePageState extends State<HomePage> {
           accuracy: LocationAccuracy.high,
         ),
       );
-
+      debugPrint('GPS LAT: ${position.latitude}');
+      debugPrint('GPS LNG: ${position.longitude}');
       final times = PrayerService.calculatePrayerTimes(
         latitude: position.latitude,
         longitude: position.longitude,
@@ -162,6 +165,9 @@ class _HomePageState extends State<HomePage> {
       if (!mounted) return;
 
       setState(() {
+        userLatitude = position.latitude;
+        userLongitude = position.longitude;
+
         for (int i = 0; i < prayerNames.length; i++) {
           final adjustment = automaticAdjustments
               ? 0
@@ -381,7 +387,7 @@ class _HomePageState extends State<HomePage> {
         color: darkGreen,
         borderRadius: BorderRadius.circular(22),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
@@ -408,6 +414,13 @@ class _HomePageState extends State<HomePage> {
               ),
             ],
           ),
+          if (userLatitude != null && userLongitude != null) ...[
+            SizedBox(height: 10),
+            Text(
+              'إحداثيات الموقع: ${userLatitude!.toStringAsFixed(4)}, ${userLongitude!.toStringAsFixed(4)}',
+              style: TextStyle(color: Colors.white70, fontSize: 11),
+            ),
+          ],
         ],
       ),
     );
