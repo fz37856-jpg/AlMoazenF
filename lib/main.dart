@@ -5,8 +5,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'services/prayer_service.dart';
 import 'pages/quran_page.dart';
 import 'pages/adhkar_page.dart';
+import 'services/prayer_notification_service.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await PrayerNotificationService.initialize();
   runApp(const AlMoazenApp());
 }
 
@@ -51,6 +54,7 @@ class _HomePageState extends State<HomePage> {
   final Map<String, DateTime> calculatedPrayerTimes = {};
 
   bool automaticAdjustments = true;
+  bool prayerNotificationsEnabled = false;
 
   final Map<String, int> prayerAdjustments = {
     'الفجر': 0,
@@ -128,6 +132,7 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       automaticAdjustments =
           prefs.getBool('automaticAdjustments') ?? true;
+      prayerNotificationsEnabled = prefs.getBool('prayerNotificationsEnabled') ?? false;
 
       for (String name in prayerNames) {
         prayerAdjustments[name] =
@@ -144,6 +149,7 @@ class _HomePageState extends State<HomePage> {
       automaticAdjustments,
     );
 
+    await prefs.setBool('prayerNotificationsEnabled', prayerNotificationsEnabled);
     for (String name in prayerNames) {
       await prefs.setInt(
         'adjust_$name',
@@ -216,6 +222,16 @@ class _HomePageState extends State<HomePage> {
         locationName = 'تم تحديد موقعك بنجاح';
         isLoadingLocation = false;
       });
+
+      if (prayerNotificationsEnabled &&
+          userLatitude != null && userLongitude != null) {
+        await PrayerNotificationService.schedule(
+          latitude: userLatitude!,
+          longitude: userLongitude!,
+          automatic: automaticAdjustments,
+          adjustments: prayerAdjustments,
+        );
+      }
     } catch (e) {
       if (!mounted) return;
 
@@ -260,7 +276,15 @@ class _HomePageState extends State<HomePage> {
                       },
                     ),
                     const Divider(),
-                    if (!tempAutomatic)
+                    SwitchListTile(
+                      title: const Text('تنبيهات الصلوات'),
+                      subtitle: const Text('تذكير بمواعيد الصلوات الخمس'),
+                      value: prayerNotificationsEnabled,
+                      onChanged: (v) {
+                        dialogSetState(() => prayerNotificationsEnabled = v);
+                      },
+                    ),
+                    if (!tempAutomatic
                       ...prayerNames.map((name) {
                         return ListTile(
                           title: Text(name),
@@ -311,6 +335,13 @@ class _HomePageState extends State<HomePage> {
                         ..addAll(tempAdjustments);
                     });
 
+                    if (prayerNotificationsEnabled) {
+                      final granted =
+                          await PrayerNotificationService.requestPermission();
+                      if (!granted) prayerNotificationsEnabled = false;
+                    } else {
+                      await PrayerNotificationService.cancelAll();
+                    }
                     await savePrayerSettings();
                     if (!mounted) return;
                     Navigator.pop(dialogContext);
