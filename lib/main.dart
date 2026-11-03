@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'services/prayer_service.dart';
+import 'pages/quran_page.dart';
 
 void main() {
   runApp(const AlMoazenApp());
@@ -401,38 +402,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildQuranPage() {
-    return SafeArea(
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(25),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.menu_book_rounded,
-                size: 85,
-                color: mainGreen,
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'القرآن الكريم',
-                style: TextStyle(
-                  color: darkGreen,
-                  fontSize: 25,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'نعمل على تجهيز قسم القرآن الكريم.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey, fontSize: 15),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    return const QuranPage();
   }
 
   Widget _buildHeader() {
@@ -722,7 +692,11 @@ class _HomePageState extends State<HomePage> {
       ),
       itemBuilder: (context, index) {
         return GestureDetector(
-          onTap: index == 2 ? _openTasbeehPage : null,
+          onTap: index == 0
+              ? () => setState(() => selectedIndex = 2)
+              : index == 2
+                  ? _openTasbeehPage
+                  : null,
           child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
