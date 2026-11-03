@@ -284,7 +284,7 @@ class _HomePageState extends State<HomePage> {
                         dialogSetState(() => prayerNotificationsEnabled = v);
                       },
                     ),
-                    if (!tempAutomatic
+                    if (!tempAutomatic)
                       ...prayerNames.map((name) {
                         return ListTile(
                           title: Text(name),
