@@ -13,7 +13,7 @@ class _AdhkarPageState extends State<AdhkarPage> {
   static const green = Color(0xFF1D5948);
   static const gold = Color(0xFFD5B36A);
 
-  final categories = ['أذكار الصباح', 'أذكار المساء', 'بعد الصلاة', 'أذكار متنوعة'];
+  final categories = ['أذكار الصباح', 'أذكار المساء', 'بعد الصلاة', 'أذكار متنوعة', 'النوم والاستيقاظ'];
   int selected = 0;
   Map<String, int> counts = {};
 
@@ -43,6 +43,12 @@ class _AdhkarPageState extends State<AdhkarPage> {
       ['لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.', 100],
       ['أستغفر الله وأتوب إليه.', 100],
     ],
+    [
+      ['باسمك اللهم أموت وأحيا.', 1],
+      ['الحمد لله الذي أحيانا بعدما أماتنا وإليه النشور.', 1],
+      ['باسمك ربي وضعت جنبي، وبك أرفعه، إن أمسكت نفسي فارحمها، وإن أرسلتها فاحفظها بما تحفظ به عبادك الصالحين.', 1],
+      ['اللهم أسلمت نفسي إليك، وفوضت أمري إليك، ووجهت وجهي إليك، وألجأت ظهري إليك، رغبة ورهبة إليك، لا ملجأ ولا منجا منك إلا إليك، آمنت بكتابك الذي أنزلت، وبنبيك الذي أرسلت.', 1],
+    ],
   ];
 
   @override
@@ -51,13 +57,19 @@ class _AdhkarPageState extends State<AdhkarPage> {
     loadCounts();
   }
 
+  String storageKey(int i, int j) {
+    final now = DateTime.now();
+    final day = '${now.year}-${now.month}-${now.day}';
+    return 'adhkar_$day-$i-$j';
+  }
+
   Future<void> loadCounts() async {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
     setState(() {
-      for (int i = 0; i < 4; i++) {
+      for (int i = 0; i < data.length; i++) {
         for (int j = 0; j < data[i].length; j++) {
-          counts['$i-$j'] = prefs.getInt('adhkar_$i-$j') ?? 0;
+          counts['$i-$j'] = prefs.getInt(storageKey(i, j)) ?? 0;
         }
       }
     });
@@ -70,15 +82,57 @@ class _AdhkarPageState extends State<AdhkarPage> {
     if (current >= target) return;
     final value = current + 1;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('adhkar_$key', value);
+    await prefs.setInt(storageKey(i, j), value);
     if (mounted) setState(() => counts[key] = value);
   }
 
   Future<void> reset(int i, int j) async {
     final key = '$i-$j';
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('adhkar_$key');
+    await prefs.remove(storageKey(i, j));
     if (mounted) setState(() => counts[key] = 0);
+  }
+
+
+  String sourceFor(int category, int index) {
+    const sources = [
+      [
+        'المصدر قيد التحقق',
+        'المصدر قيد التحقق',
+        'صحيح مسلم – حديث 2692',
+        'جامع الترمذي – حديث 3391',
+      ],
+      [
+        'المصدر قيد التحقق',
+        'المصدر قيد التحقق',
+        'صحيح مسلم – حديث 2692',
+        'جامع الترمذي – حديث 3391',
+      ],
+      [
+        'صحيح مسلم – حديث 591',
+        'صحيح مسلم – حديث 591',
+        'صحيح مسلم – حديث 595',
+        'صحيح مسلم – حديث 595',
+        'صحيح مسلم – حديث 595',
+        'صحيح مسلم – حديث 597',
+      ],
+      [
+        'صحيح مسلم – حديث 2692',
+        'المصدر قيد التحقق',
+        'المصدر قيد التحقق',
+      ],
+      [
+        'صحيح البخاري – حديث 6324',
+        'صحيح البخاري – حديث 6324',
+        'المصدر قيد التحقق',
+        'المصدر قيد التحقق',
+      ],
+    ];
+
+    if (category >= sources.length || index >= sources[category].length) {
+      return 'المصدر قيد التحقق';
+    }
+    return sources[category][index];
   }
 
   @override
@@ -140,6 +194,15 @@ class _AdhkarPageState extends State<AdhkarPage> {
                               height: 2,
                               color: green,
                               fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'المصدر: ${sourceFor(selected, j)}',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.black54,
                             ),
                           ),
                           const SizedBox(height: 14),
