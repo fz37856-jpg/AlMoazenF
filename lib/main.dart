@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'services/prayer_service.dart';
 import 'pages/quran_page.dart';
+import 'pages/adhkar_page.dart';
 
 void main() {
   runApp(const AlMoazenApp());
@@ -694,9 +695,16 @@ class _HomePageState extends State<HomePage> {
         return GestureDetector(
           onTap: index == 0
               ? () => setState(() => selectedIndex = 2)
-              : index == 2
-                  ? _openTasbeehPage
-                  : null,
+              : index == 1 || index == 3
+                  ? () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AdhkarPage(),
+                        ),
+                      )
+                  : index == 2
+                      ? _openTasbeehPage
+                      : null,
           child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
