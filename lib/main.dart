@@ -55,6 +55,7 @@ class _HomePageState extends State<HomePage> {
 
   bool automaticAdjustments = true;
   bool prayerNotificationsEnabled = false;
+  bool adhanEnabled = false;
 
   final Map<String, int> prayerAdjustments = {
     'الفجر': 0,
@@ -133,6 +134,7 @@ class _HomePageState extends State<HomePage> {
       automaticAdjustments =
           prefs.getBool('automaticAdjustments') ?? true;
       prayerNotificationsEnabled = prefs.getBool('prayerNotificationsEnabled') ?? false;
+      adhanEnabled = prefs.getBool('adhanEnabled') ?? false;
 
       for (String name in prayerNames) {
         prayerAdjustments[name] =
@@ -150,6 +152,7 @@ class _HomePageState extends State<HomePage> {
     );
 
     await prefs.setBool('prayerNotificationsEnabled', prayerNotificationsEnabled);
+    await prefs.setBool('adhanEnabled', adhanEnabled);
     for (String name in prayerNames) {
       await prefs.setInt(
         'adjust_$name',
@@ -223,13 +226,14 @@ class _HomePageState extends State<HomePage> {
         isLoadingLocation = false;
       });
 
-      if (prayerNotificationsEnabled &&
+      if ((prayerNotificationsEnabled || adhanEnabled) &&
           userLatitude != null && userLongitude != null) {
         await PrayerNotificationService.schedule(
           latitude: userLatitude!,
           longitude: userLongitude!,
           automatic: automaticAdjustments,
           adjustments: prayerAdjustments,
+          adhanEnabled: adhanEnabled,
         );
       }
     } catch (e) {
@@ -246,6 +250,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _showPrayerSettings() async {
     bool tempAutomatic = automaticAdjustments;
+    bool tempAdhanEnabled = adhanEnabled;
     Map<String, int> tempAdjustments =
         Map<String, int>.from(prayerAdjustments);
 
@@ -282,6 +287,14 @@ class _HomePageState extends State<HomePage> {
                       value: prayerNotificationsEnabled,
                       onChanged: (v) {
                         dialogSetState(() => prayerNotificationsEnabled = v);
+                      },
+                    ),
+                    SwitchListTile(
+                      title: const Text('الأذان الصوتي'),
+                      subtitle: const Text('تشغيل ملف الأذان عند دخول وقت الصلاة'),
+                      value: tempAdhanEnabled,
+                      onChanged: (v) {
+                        dialogSetState(() => tempAdhanEnabled = v);
                       },
                     ),
                     if (!tempAutomatic)
@@ -330,15 +343,19 @@ class _HomePageState extends State<HomePage> {
                   onPressed: () async {
                     setState(() {
                       automaticAdjustments = tempAutomatic;
+                      adhanEnabled = tempAdhanEnabled;
                       prayerAdjustments
                         ..clear()
                         ..addAll(tempAdjustments);
                     });
 
-                    if (prayerNotificationsEnabled) {
+                    if (prayerNotificationsEnabled || adhanEnabled) {
                       final granted =
                           await PrayerNotificationService.requestPermission();
-                      if (!granted) prayerNotificationsEnabled = false;
+                      if (!granted) {
+                        prayerNotificationsEnabled = false;
+                        adhanEnabled = false;
+                      }
                     } else {
                       await PrayerNotificationService.cancelAll();
                     }

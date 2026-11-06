@@ -36,24 +36,40 @@ class PrayerNotificationService {
     required double longitude,
     required bool automatic,
     required Map<String, int> adjustments,
+    required bool adhanEnabled,
   }) async {
     await cancelAll();
 
     const names = ['الفجر', 'الظهر', 'العصر', 'المغرب', 'العشاء'];
-    const details = NotificationDetails(
+
+    const textDetails = NotificationDetails(
       android: AndroidNotificationDetails(
         'prayer_times',
         'تنبيهات الصلاة',
-        channelDescription: 'تذكير بمواقيت الصلوات الخمس',
+        channelDescription: 'تذكير بمواعيد الصلوات الخمس',
         importance: Importance.high,
         priority: Priority.high,
       ),
     );
 
+    const adhanDetails = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'prayer_adhan_v1',
+        'الأذان الصوتي',
+        channelDescription: 'تشغيل الأذان عند دخول وقت الصلاة',
+        importance: Importance.max,
+        priority: Priority.max,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('azan'),
+      ),
+    );
+
+    final details = adhanEnabled ? adhanDetails : textDetails;
     final now = DateTime.now();
 
     for (int day = 0; day < 7; day++) {
       final date = DateTime(now.year, now.month, now.day + day);
+
       final times = PrayerService.calculatePrayerTimes(
         latitude: latitude,
         longitude: longitude,
@@ -67,6 +83,7 @@ class PrayerNotificationService {
 
         final minutes = automatic ? 0 : (adjustments[name] ?? 0);
         final adjusted = original.add(Duration(minutes: minutes));
+
         if (!adjusted.isAfter(now)) continue;
 
         await _plugin.zonedSchedule(
