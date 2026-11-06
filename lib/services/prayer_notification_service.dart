@@ -31,7 +31,7 @@ class PrayerNotificationService {
 
   static Future<void> cancelAll() => _plugin.cancelAll();
 
-  static Future<void> schedule({
+  static Future<int> schedule({
     required double latitude,
     required double longitude,
     required bool automatic,
@@ -98,5 +98,9 @@ class PrayerNotificationService {
         );
       }
     }
+
+    final pending = await _plugin.pendingNotificationRequests();
+    print('ALMOAZEN_F: scheduled notifications = ${pending.length}');
+    return pending.length;
   }
 }

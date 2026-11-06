@@ -228,13 +228,26 @@ class _HomePageState extends State<HomePage> {
 
       if ((prayerNotificationsEnabled || adhanEnabled) &&
           userLatitude != null && userLongitude != null) {
-        await PrayerNotificationService.schedule(
-          latitude: userLatitude!,
-          longitude: userLongitude!,
-          automatic: automaticAdjustments,
-          adjustments: prayerAdjustments,
-          adhanEnabled: adhanEnabled,
-        );
+        try {
+          final count = await PrayerNotificationService.schedule(
+            latitude: userLatitude!,
+            longitude: userLongitude!,
+            automatic: automaticAdjustments,
+            adjustments: prayerAdjustments,
+            adhanEnabled: adhanEnabled,
+          );
+          if (mounted) {
+            setState(() {
+              locationName = 'تم تحديد الموقع — تم تسجيل $count تنبيه';
+            });
+          }
+        } catch (e) {
+          if (mounted) {
+            setState(() {
+              locationName = 'فشلت جدولة التنبيهات: $e';
+            });
+          }
+        }
       }
     } catch (e) {
       if (!mounted) return;
